@@ -88,7 +88,8 @@ void main_drone(void)
 
 static void proxSens(void *pvParameters)
 {
-    
+    double distance[6];
+    //+x, -x, +y, -y, +z, -z
     for( ;; ){
         
     }
@@ -96,7 +97,9 @@ static void proxSens(void *pvParameters)
 
 static void imu(void *pvParameters)
 {
-    
+    //maybe dummy data? (no actual feedback just rand)
+    double inertia[];
+    //rotation x3, 
     for( ;; ){
         
     }
@@ -104,7 +107,8 @@ static void imu(void *pvParameters)
 
 static void gps(void *pvParameters)
 {
-    
+    double location[3];
+    //x, y, z
     for( ;; ){
         
     }
@@ -114,7 +118,8 @@ static void gps(void *pvParameters)
 
 static void videoFeed(void *pvParameters)
 {
-    
+    char vid[][][];
+    //[Frame][x pixels][y pixels]
     for( ;; ){
         
     }
@@ -122,6 +127,8 @@ static void videoFeed(void *pvParameters)
 
 static void videoForward(void *pvParameters)
 {
+    char frame[][];
+    //[x pixel][y pixel]
     
 }
 
@@ -141,7 +148,8 @@ static void control(void *pvParameters)
 
 static void motor(void *pvParameters)
 {
-    
+    uint8_t pwm[4];
+    //each motor 0 to 255
     for( ;; ){
         
     }
