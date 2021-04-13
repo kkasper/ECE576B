@@ -18,9 +18,10 @@
 #include "console.h"
 
 //TODO: Add Tasks
-
+static void 
 
 //TODO: Add Queues
+static QueueHandle_t
 
 void main_drone(void)
 {
