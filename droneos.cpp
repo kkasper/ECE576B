@@ -35,42 +35,49 @@ static void motor(void *pvParameters);
 static void monitor(void *pvParameters);
 
 //Queues Handles
-static QueueHandle_t proxRx = NULL;
-static QueueHandle_t imuRx = NULL;
-static QueueHandle_t gpsRx = NULL;
-static QueueHandle_t gpsTx = NULL;
-static QueueHandle_t videoRx = NULL;
-static QueueHandle_t videoTx = NULL;
-static QueueHandle_t commandRx = NULL;
-static QueueHandle_t commandTx = NULL;
-static QueueHandle_t motorTx = NULL;
+static QueueHandle_t proxRx     = NULL;
+static QueueHandle_t imuRx      = NULL;
+static QueueHandle_t gpsRx      = NULL;
+static QueueHandle_t gpsTx      = NULL;
+static QueueHandle_t videoRx    = NULL;
+static QueueHandle_t videoTx    = NULL;
+static QueueHandle_t commandRx  = NULL;
+static QueueHandle_t commandTx  = NULL;
+static QueueHandle_t motorTx    = NULL;
 
 //Task Handles
-static TaskHandle_t h_proxSens = NULL;
-static TaskHandle_t h_imu = NULL;
-static TaskHandle_t h_gps = NULL;
-static TaskHandle_t h_videoFeed = NULL;
-static TaskHandle_t h_videoForward = NULL;
-static TaskHandle_t h_control = NULL;
-static TaskHandle_t h_motor = NULL;
-static TaskHandle_t h_monitor = NULL;
+static TaskHandle_t h_proxSens      = NULL;
+static TaskHandle_t h_imu           = NULL;
+static TaskHandle_t h_gps           = NULL;
+static TaskHandle_t h_videoFeed     = NULL;
+static TaskHandle_t h_videoForward  = NULL;
+static TaskHandle_t h_control       = NULL;
+static TaskHandle_t h_motor         = NULL;
+static TaskHandle_t h_monitor       = NULL;
 
 void main_drone(void)
 {
     //TODO: Queues
-    proxRx = xQueueCreate(, );
-    imuRx = xQueueCreate(, );
-    gpsRx = xQueueCreate(, );
-    gpsTx = xQueueCreate(, );
-    videoRx = xQueueCreate(, );
-    videoTx = xQueueCreate(, );
-    commandRx = xQueueCreate(, );
-    commandTx = xQueueCreate(, );
-    motorTx = xQueueCreate(, );
+    proxRx      = xQueueCreate(, );
+    imuRx       = xQueueCreate(, );
+    gpsRx       = xQueueCreate(, );
+    gpsTx       = xQueueCreate(, );
+    videoRx     = xQueueCreate(, );
+    videoTx     = xQueueCreate(, );
+    commandRx   = xQueueCreate(, );
+    commandTx   = xQueueCreate(, );
+    motorTx     = xQueueCreate(, );
     
     if(){
         //TODO: Tasks
-        
+        xTaskCreate(proxSens, , , , , );
+        xTaskCreate(imuRx, , , , , );
+        xTaskCreate(gpsRx, , , , , );
+        xTaskCreate(gpsTx, , , , , );
+        xTaskCreate(videoRx, , , , , );
+        xTaskCreate(commandRx, , , , , );
+        xTaskCreate(commandTx, , , , , );
+        xTaskCreate(motorTx, , , , , );
         xTaskCreate(monitor, "MON", configMINIMAL_STACK_SIZE, NULL, MONITOR_TASK_PRIORITY, NULL);
         
         vTaskStartScheduler();
