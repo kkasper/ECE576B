@@ -17,8 +17,10 @@
 /* Local includes. */
 #include "console.h"
 
-//TODO: Add Tasks
-static void proximitySensors(void *pvParameters);
+//Deines
+//TODO: Defines
+
+static void proxSens(void *pvParameters);
 static void imu(void *pvParameters);
 static void gps(void *pvParameters);
 //static void gpsMon(void *pvParameters);
@@ -32,24 +34,118 @@ static void motor(void *pvParameters);
 //static void motorMon(void *pvParameters);
 static void monitor(void *pvParameters);
 
-//TODO: Add Queues
-static QueueHandle_t proxRx;
-static QueueHandle_t imuRx;
-static QueueHandle_t gpsRx;
-static QueueHandle_t gpsTx;
-static QueueHandle_t videoRx;
-static QueueHandle_t videoTx;
-static QueueHandle_t commandRx;
-static QueueHandle_t commandTx;
-static QueueHandle_t motorTx;
+//Queues Handles
+static QueueHandle_t proxRx = NULL;
+static QueueHandle_t imuRx = NULL;
+static QueueHandle_t gpsRx = NULL;
+static QueueHandle_t gpsTx = NULL;
+static QueueHandle_t videoRx = NULL;
+static QueueHandle_t videoTx = NULL;
+static QueueHandle_t commandRx = NULL;
+static QueueHandle_t commandTx = NULL;
+static QueueHandle_t motorTx = NULL;
+
+//Task Handles
+static TaskHandle_t h_proxSens = NULL;
+static TaskHandle_t h_imu = NULL;
+static TaskHandle_t h_gps = NULL;
+static TaskHandle_t h_videoFeed = NULL;
+static TaskHandle_t h_videoForward = NULL;
+static TaskHandle_t h_control = NULL;
+static TaskHandle_t h_motor = NULL;
+static TaskHandle_t h_monitor = NULL;
 
 void main_drone(void)
 {
-    
-    
+    //TODO: Queues
+    proxRx = xQueueCreate(, );
+    imuRx = xQueueCreate(, );
+    gpsRx = xQueueCreate(, );
+    gpsTx = xQueueCreate(, );
+    videoRx = xQueueCreate(, );
+    videoTx = xQueueCreate(, );
+    commandRx = xQueueCreate(, );
+    commandTx = xQueueCreate(, );
+    motorTx = xQueueCreate(, );
     
     if(){
+        //TODO: Tasks
         
         xTaskCreate(monitor, "MON", configMINIMAL_STACK_SIZE, NULL, MONITOR_TASK_PRIORITY, NULL);
+        
+        vTaskStartScheduler();
+    }
+    
+    for( ;; );
+}
+
+static void proxSens(void *pvParameters)
+{
+    
+    for( ;; ){
+        
+    }
+}
+
+static void imu(void *pvParameters)
+{
+    
+    for( ;; ){
+        
+    }
+}
+
+static void gps(void *pvParameters)
+{
+    
+    for( ;; ){
+        
+    }
+}
+
+//static void gpsMon(void *pvParameters){}
+
+static void videoFeed(void *pvParameters)
+{
+    
+    for( ;; ){
+        
+    }
+}
+
+static void videoForward(void *pvParameters)
+{
+    
+}
+
+//static void videoMon(void *pvParameters){}
+
+//static void proxMon(void *pvParameters){}
+
+static void control(void *pvParameters)
+{
+    
+    for( ;; ){
+        
+    }
+}
+
+//static void imuMon(void *pvParameters){}
+
+static void motor(void *pvParameters)
+{
+    
+    for( ;; ){
+        
+    }
+}
+
+//static void motorMon(void *pvParameters){}
+
+static void monitor(void *pvParameters)
+{
+    
+    for( ;; ){
+        
     }
 }
