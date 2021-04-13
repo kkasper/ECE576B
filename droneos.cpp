@@ -16,3 +16,13 @@
 
 /* Local includes. */
 #include "console.h"
+
+//TODO: Add Tasks
+
+
+//TODO: Add Queues
+
+void main_drone(void)
+{
+    
+}
