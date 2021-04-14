@@ -94,10 +94,19 @@ void main_drone(void)
 **/
 static void proxSens(void *pvParameters)
 {
-    double distance[6];
-    //+x, -x, +y, -y, +z, -z
+    double distance[6]; //+x, -x, +y, -y, +z, -z
+    double gps[3];
+    double bound_cond = 3.14;
+    double bounds[] = {10, 10, 10};
+    
+    //TODO: xQueue
     for( ;; ){
-        
+        for(int i = 0; i < 3; i++){
+            gps[i] = xQueueReceive();
+            distance[2*i] = (bounds[i] - gps[i] < bound_cond) ? (bounds[i] - gps[i]) : -1;
+            distance[2*i + 1] = (gps[i] - bounds[i] < bound_cond) ? (gps[i] - bounds[i]) : -1;
+        }
+        xQueueSend();
     }
 }
 
@@ -109,10 +118,15 @@ static void proxSens(void *pvParameters)
 static void imu()
 {
     //maybe dummy data? (no actual feedback just rand)
-    double inertia[];
-    //rotation x3, 
+    double inertia[6]; //rotation x3, acceleration x3
+    
+    //TODO: xQueue, rand
     for( ;; ){
-        
+        for(int i = 0, i < 3; i++){
+            inertia[i] = rand();
+            inertia[2*i] = rand();
+        }
+        xQueueSend();
     }
 }
 
@@ -139,10 +153,12 @@ static void gps(void *pvParameters)
 **/
 static void videoFeed()
 {
-    char vid[][][];
-    //[Frame][x pixels][y pixels]
+    char vid[][][]; //[Frame][x pixels][y pixels]
+    
+    //TODO: xQueue
     for( ;; ){
         
+        xQueueSend();
     }
 }
 
@@ -153,9 +169,14 @@ static void videoFeed()
 **/
 static void videoForward(void *pvParameters)
 {
-    char frame[][];
-    //[x pixel][y pixel]
+    char frame[][]; //[x pixel][y pixel]
     
+    //TODO: xQueue
+    for( ;; ){
+        while(0);
+        videoForward = xQueueReceive();
+        xQueueSend();
+    }
 }
 
 //static void videoMon(void *pvParameters){}
@@ -187,10 +208,15 @@ static void control(void *pvParameters)
 **/
 static void motor(void *pvParameters)
 {
-    uint8_t pwm[4];
-    //each motor 0 to 255 (rpm? Top speed is 255?)
+    uint8_t pwm[4]; //each motor 0 to 255 (rpm? Top speed is 255?)
+    int8_t control[3]; //x, y, z: -127 full reverse, 128 full forward
+    //TODO: xQueue
     for( ;; ){
-        
+        for(int i = 0; i < 3; i++){
+            control[i] = xQueueReceive();
+        }
+        //TODO: MATH
+        xQueueSend();
     }
 }
 
@@ -203,8 +229,35 @@ static void motor(void *pvParameters)
 **/
 static void monitor()
 {
+    double  prox[];
+    double  imu[];
+    double  gps[];
+    char    video[][];
+    int8_t  commandRAW[];
+    int8_t  commandWRAPPED[];
+    uint8_t motor[];
     
+    //TODO: xQueue
     for( ;; ){
-        
+        for(int i = 0; i < 3; i++){
+            gps[i] = xQueueReceive();
+            commandRAW[i] = xQueueReceive();
+            commandWRAPPED[i] = xQueueReceive();
+        }
+        for(int i = 0; i < 4; i++){
+            motor[i] = xQueueReceive();
+        }
+        for(int i = 0; i < 6; i++){
+            prox[i] = xQueueReceive();
+            imu[i] = xQueueReceive();
+        }
+        if(1){
+            for(int i = 0; i < ; i++){  //TODO: Bounds
+                for(int j = 0; i < ; i++){
+                    video[i][j] = xQueueReceive();
+                }
+            }
+        }
+        //TODO: Write that shit
     }
 }
