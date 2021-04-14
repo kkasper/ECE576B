@@ -87,7 +87,8 @@ void main_drone(void)
     for( ;; ); // <-- We go beyond this, the code breaks.
 }
 /** @fn static void proxSens()
-*   @brief Checking and returns change in cartesian directions.
+*   @brief Depends on how our obstacles behave. TBD!
+*   TODO
 *   @param Task parameters are current gps coordinates?
 *   @return void
 **/
@@ -146,7 +147,7 @@ static void videoFeed()
 }
 
 /** @fn static void videoForward()
-*   @brief Returns created pixel images from videoFeed task back to user?
+*   @brief Forwards video pixel data to the monitor task
 *   @param Task parameters to return video image to user??
 *   @return void
 **/
