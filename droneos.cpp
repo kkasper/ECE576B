@@ -56,7 +56,7 @@ static TaskHandle_t h_monitor       = NULL;
 
 void main_drone(void)
 {
-    //TODO: Queues
+    //TODO: xQueueCreate
     proxRx      = xQueueCreate(, );
     imuRx       = xQueueCreate(, );
     gpsRx       = xQueueCreate(, );
@@ -68,15 +68,12 @@ void main_drone(void)
     motorTx     = xQueueCreate(, );
     
     if(){
-        //TODO: Tasks
+        //TODO: xTasksCreate
         xTaskCreate(proxSens,"PRXSN", , , ,&h_proxSens);
         xTaskCreate(imu,"IMU", , NULL, , &h_imu);
         xTaskCreate(gps,"GPS", , , , &h_gps);
-        //xTaskCreate(gpsTx, , , , , );
         xTaskCreate(videoFeed,"VDFE", , , , &h_videoFeed);
         xTaskCreate(videoForward,"VDFWD", , , , &h_videoForward);
-        //xTaskCreate(commandRx, , , , , );
-        //xTaskCreate(commandTx, , , , , );
         xTaskCreate(motor,"MOT", , , , &h_motor);
         xTaskCreate(monitor, "MON", configMINIMAL_STACK_SIZE, NULL, 
         	MONITOR_TASK_PRIORITY, &h_monitor);
