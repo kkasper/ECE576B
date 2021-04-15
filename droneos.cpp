@@ -18,15 +18,19 @@
 
 //Defines
 //TODO: Defines
-define H_PROXSENS_PRIORITY          x
-define H_IMU_PRIORITY               x
-define H_GPS_PRIORITY               x
-define H_VIDEOFEED_PRIORITY         x
-define H_VIDEOFORWARD_PRIORITY      x
-define H_CONTROL_PRIORITY           x
-define H_MOTOR_PRIORITY             x
-define H_MONITOR_PRIORITY           x
-define H_BIGCHUNGUS_PRIORITY        x //MAX
+#define H_PROXSENS_PRIORITY          x
+#define H_IMU_PRIORITY               x
+#define H_GPS_PRIORITY               x
+#define H_VIDEOFEED_PRIORITY         x
+#define H_VIDEOFORWARD_PRIORITY      x
+#define H_CONTROL_PRIORITY           x
+#define H_MOTOR_PRIORITY             x
+#define H_MONITOR_PRIORITY           x
+#define H_BIGCHUNGUS_PRIORITY        x //MAX
+
+#define PROX_SYNC_BITS  
+#define GPS_SYNC_BITS   
+#define COM_SYNC_BITS   
 
 static void proxSens(void *pvParameters);
 static void imu(void *pvParameters);
@@ -137,15 +141,17 @@ static void bigChungus(void *pvParameters)
 static void proxSens(void *pvParameters)
 {
     double distance[6]; //+x, -x, +y, -y, +z, -z
-    double gps[3];
+    double gps;
     double bound_cond = 3.14;
     double bounds[] = {10, 10, 10};
     
     for( ;; ){
         for(int i = 0; i < 3; i++){
-            //TODO: xQueuePeek gps[i] = xQueueReceive();
-            distance[2*i] = (bounds[i] - gps[i] < bound_cond) ? (bounds[i] - gps[i]) : -1;
-            distance[2*i + 1] = (gps[i] - bounds[i] < bound_cond) ? (gps[i] - bounds[i]) : -1;
+            xEventGroupWaitBits(theBois, , pdFALSE, portMAX_DELAY);
+            xQueuePeek(gpsTx, *gps, portMAX_DELAY);
+            xEventGroupSync(theBois, , GPS_SYNC_BITS, portMAX_DELAY);
+            distance[2*i] = (bounds[i] - gps < bound_cond) ? (bounds[i] - gps) : -1;
+            distance[2*i + 1] = (gps - bounds[i] < bound_cond) ? (gps - bounds[i]) : -1;
         }
         for(int i = 0; i < 6; i++){
             xQueueSend(proxRx, &distance[2*i], portMAX_DELAY);
