@@ -212,7 +212,7 @@ static void gps(void *pvParameters)
         for(int i = 0; i < 3; i++){
             //TODO: peek
             xEventGroupWaitBits();
-            xQueuePeek(, *control[i], portMAX_DELAY);
+            xQueuePeek(commandTx, *control[i], portMAX_DELAY);
             xEventGroupSync(theBois, , , portMAX_DELAY);
         }
         for(int i = 0; i < 3; i++){
@@ -283,6 +283,8 @@ static void videoForward(void *pvParameters)
 **/
 static void control(void *pvParameters)
 {
+    int8_t commandRAW[3];
+    int8_t commandWRAPPED[3];
     
     for( ;; ){
         
@@ -306,7 +308,7 @@ static void motor(void *pvParameters)
         for(int i = 0; i < 3; i++){
             //TODO: xQueuePeek
             xEventGroupWaitBits();
-            xQueuePeek(, *control[i], portMAX_DELAY);
+            xQueuePeek(commandTx, *control[i], portMAX_DELAY);
             xEventGroupSync(theBois, , , portMAX_DELAY);
         }
         //TODO: MATH
@@ -325,13 +327,13 @@ static void motor(void *pvParameters)
 **/
 static void monitor()
 {
-    double  prox[];
-    double  imu[];
-    double  gps[];
+    double  prox[6];
+    double  imu[6];
+    double  gps[3];
     char    video[][];
-    int8_t  commandRAW[];
-    int8_t  commandWRAPPED[];
-    uint8_t motor[];
+    int8_t  commandRAW[3];
+    int8_t  commandWRAPPED[3];
+    uint8_t motor[4];
     
     //TODO: Mucho xQueuePeek
     //TODO: xQueue
@@ -341,10 +343,10 @@ static void monitor()
             xQueuePeek(, *gps[i], portMAX_DELAY);
             xEventGroupSync(theBois, , , portMAX_DELAY);
             xEventGroupWaitBits();
-            xQueuePeek(, *commandRAW[i], portMAX_DELAY);
+            xQueuePeek(commandRx, *commandRAW[i], portMAX_DELAY);
             xEventGroupSync(theBois, , , portMAX_DELAY);
             xEventGroupWaitBits();
-            xQueuePeek(, *commandWRAPPED[i], portMAX_DELAY);
+            xQueuePeek(commandTx, *commandWRAPPED[i], portMAX_DELAY);
             xEventGroupSync(theBois, , , portMAX_DELAY);
         }
         for(int i = 0; i < 4; i++){
