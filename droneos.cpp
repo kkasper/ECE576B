@@ -85,6 +85,10 @@ void main_drone(void)
     motorTx     = xQueueCreate(4, sizeof(uint8_t));
     
     //TODO: initialize Queues gps, 
+    double gpsInit[] = {0, 0, 0};
+    for(int i = 0; i < 3; i++){
+        xQueueSend(gpsTx, &gpsInit[i], portMAX_DELAY);
+    }
     
     theBois = xEventGroupCreate();
     
@@ -124,10 +128,24 @@ static void bigChungus(void *pvParameters)
             }
         }
         if(uxQueueMessagesWaiting(gpsTx) > 0){
-            
+            uxReturn = xEventGroupSync(theBois, gps_start_bits, GPS_SYNC_BITS, DELAY);
+            if(uxReturn == GPS_SYNC_BITS){
+                gps_start_bits = ;
+                xQueueReceive(proxRx, &trashD, portMAX_DELAY);
+            }
+            else{
+                gps_start_bits = uxReturn;
+            }
         }
         if(uxQueueMessagesWaiting(commandTx) > 0){
-            
+            uxReturn = xEventGroupSync(theBois, com_start_bits, COM_SYNC_BITS, DELAY);
+            if(uxReturn == COM_SYNC_BITS){
+                com_start_bits = ;
+                xQueueReceive(proxRx, &trashI, portMAX_DELAY);
+            }
+            else{
+                com_start_bits = uxReturn;
+            }
         }
     }
 }
@@ -154,7 +172,7 @@ static void proxSens(void *pvParameters)
             distance[2*i + 1] = (gps - bounds[i] < bound_cond) ? (gps - bounds[i]) : -1;
         }
         for(int i = 0; i < 6; i++){
-            xQueueSend(proxRx, &distance[2*i], portMAX_DELAY);
+            xQueueSend(proxRx, &distance[i], portMAX_DELAY);
         }
     }
 }
@@ -169,7 +187,6 @@ static void imu()
     //maybe dummy data? (no actual feedback just rand)
     double inertia[6]; //rotation x3, acceleration x3
     
-    //TODO: xQueue, rand
     for( ;; ){
         for(int i = 0, i < 3; i++){
             inertia[i] = rand();
@@ -193,10 +210,13 @@ static void gps(void *pvParameters)
     
     for( ;; ){
         for(int i = 0; i < 3; i++){
-            //xQueuePeek control[i]
-            location[i] += ;//TODO: math
+            //TODO: peek
+            xEventGroupWaitBits();
+            xQueuePeek(, *control[i], portMAX_DELAY);
+            xEventGroupSync(theBois, , , portMAX_DELAY);
         }
         for(int i = 0; i < 3; i++){
+            location[i] += ;//TODO: math
             xQueueSend(gpsTx, location[i], portMAX_DELAY);
         }
     }
@@ -214,7 +234,6 @@ static void videoFeed()
     //TODO: ASCI image array thing
     char vid[][][]; //[Frame][x pixels][y pixels]
     
-    //TODO: xQueue
     for( ;; ){
         for(int i = 0; i < frame; i++){
             for(int j = 0; j < x; j++){
@@ -236,12 +255,11 @@ static void videoForward(void *pvParameters)
     char frame[][]; //[x pixel][y pixel]
     
     //Do we want to direct forawrd each "pixel"
-    //TODO: xQueue
     for( ;; ){
         while(0);
         for(int i = 0; i < x; i++){
             for(int j = 0; j < y; j++){
-                xQueueReceive();
+                xQueueReceive(videoRx, *frame[i][j], portMAX_DELAY);
             }
         }
         for(int i = 0; i < x; i++){
@@ -284,11 +302,12 @@ static void motor(void *pvParameters)
 {
     uint8_t pwm[4]; //each motor 0 to 255 (rpm? Top speed is 255?)
     int8_t control[3]; //x, y, z: -127 full reverse, 128 full forward
-    //TODO: xQueue
     for( ;; ){
         for(int i = 0; i < 3; i++){
             //TODO: xQueuePeek
-            control[i] = xQueueReceive();
+            xEventGroupWaitBits();
+            xQueuePeek(, *control[i], portMAX_DELAY);
+            xEventGroupSync(theBois, , , portMAX_DELAY);
         }
         //TODO: MATH
         for(int i = 0; i < 4; i++){
@@ -318,21 +337,29 @@ static void monitor()
     //TODO: xQueue
     for( ;; ){
         for(int i = 0; i < 3; i++){
-            gps[i] = xQueueReceive();
-            commandRAW[i] = xQueueReceive();
-            commandWRAPPED[i] = xQueueReceive();
+            xEventGroupWaitBits();
+            xQueuePeek(, *gps[i], portMAX_DELAY);
+            xEventGroupSync(theBois, , , portMAX_DELAY);
+            xEventGroupWaitBits();
+            xQueuePeek(, *commandRAW[i], portMAX_DELAY);
+            xEventGroupSync(theBois, , , portMAX_DELAY);
+            xEventGroupWaitBits();
+            xQueuePeek(, *commandWRAPPED[i], portMAX_DELAY);
+            xEventGroupSync(theBois, , , portMAX_DELAY);
         }
         for(int i = 0; i < 4; i++){
-            motor[i] = xQueueReceive();
+            motor[i] = xQueueReceive(, , );
         }
         for(int i = 0; i < 6; i++){
-            prox[i] = xQueueReceive();
-            imu[i] = xQueueReceive();
+            xEventGroupWaitBits();
+            xQueuePeek(, *prox[i], portMAX_DELAY);
+            xEventGroupSync(theBois, , , portMAX_DELAY);
+            imu[i] = xQueueReceive(, , );
         }
         if(1){
             for(int i = 0; i < ; i++){  //TODO: Bounds
                 for(int j = 0; i < ; i++){
-                    video[i][j] = xQueueReceive();
+                    video[i][j] = xQueueReceive(, , );
                 }
             }
         }
