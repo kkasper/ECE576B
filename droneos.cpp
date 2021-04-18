@@ -211,7 +211,7 @@ static void gps(void *pvParameters)
     for( ;; ){
         for(int i = 0; i < 3; i++){
             //TODO: peek
-            xEventGroupWaitBits();
+            xEventGroupWaitBits(, , , , );
             xQueuePeek(commandTx, *control[i], portMAX_DELAY);
             xEventGroupSync(theBois, , , portMAX_DELAY);
         }
@@ -307,7 +307,7 @@ static void motor(void *pvParameters)
     for( ;; ){
         for(int i = 0; i < 3; i++){
             //TODO: xQueuePeek
-            xEventGroupWaitBits();
+            xEventGroupWaitBits(, , , , );
             xQueuePeek(commandTx, *control[i], portMAX_DELAY);
             xEventGroupSync(theBois, , , portMAX_DELAY);
         }
@@ -339,13 +339,13 @@ static void monitor()
     //TODO: xQueue
     for( ;; ){
         for(int i = 0; i < 3; i++){
-            xEventGroupWaitBits();
+            xEventGroupWaitBits(, , , , );
             xQueuePeek(, *gps[i], portMAX_DELAY);
             xEventGroupSync(theBois, , , portMAX_DELAY);
-            xEventGroupWaitBits();
+            xEventGroupWaitBits(, , , , );
             xQueuePeek(commandRx, *commandRAW[i], portMAX_DELAY);
             xEventGroupSync(theBois, , , portMAX_DELAY);
-            xEventGroupWaitBits();
+            xEventGroupWaitBits(, , , , );
             xQueuePeek(commandTx, *commandWRAPPED[i], portMAX_DELAY);
             xEventGroupSync(theBois, , , portMAX_DELAY);
         }
@@ -353,7 +353,7 @@ static void monitor()
             motor[i] = xQueueReceive(, , );
         }
         for(int i = 0; i < 6; i++){
-            xEventGroupWaitBits();
+            xEventGroupWaitBits(, , , , );
             xQueuePeek(, *prox[i], portMAX_DELAY);
             xEventGroupSync(theBois, , , portMAX_DELAY);
             imu[i] = xQueueReceive(, , );
