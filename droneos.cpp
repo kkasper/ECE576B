@@ -28,9 +28,14 @@
 #define H_MONITOR_PRIORITY           x
 #define H_BIGCHUNGUS_PRIORITY        x //MAX
 
-#define PROX_SYNC_BITS  
-#define GPS_SYNC_BITS   
-#define COM_SYNC_BITS   
+#define PROX_SYNC_BITS  10000000
+#define GPS_SYNC_BITS   01000000
+#define COM_SYNC_BITS   00100000
+#define T_PROX_SYNC     00010000
+#define T_GPS_SYNC      00001000
+#define T_COM_SYNC      00000100
+#define T_MON_SYNC      00000010
+#define T_MOTO_SYNC     00000001
 
 static void proxSens(void *pvParameters);
 static void imu(void *pvParameters);
