@@ -113,7 +113,7 @@ void main_drone(void)
     xTaskCreate(control, "CON", configMINIMAL_STACK_SIZE, NULL, H_CONTROL_PRIORITY, &h_control);
     xTaskCreate(motor, "MOT", configMINIMAL_STACK_SIZE, NULL, H_MOTOR_PRIORITY, &h_motor);
     xTaskCreate(monitor, "MON", configMINIMAL_STACK_SIZE, NULL, H_MONITOR_PRIORITY, &h_monitor);
-    xTaskCreate(bigChungus, "BC", configMINIMAL_STACK_SIZE, NULL, , &h_bigChungus);
+    xTaskCreate(bigChungus, "BC", configMINIMAL_STACK_SIZE, NULL, H_BIGCHUNGUS_PRIORITY, &h_bigChungus);
     
     vTaskStartScheduler();
     
@@ -349,7 +349,6 @@ static void monitor()
     uint8_t motor[4];
     
     //TODO: Mucho xQueuePeek
-    //TODO: xQueue
     for( ;; ){
         for(int i = 0; i < 3; i++){
             xEventGroupWaitBits(theBois, GPS_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
@@ -372,7 +371,7 @@ static void monitor()
             xQueueReceive(imuRx, *imu[i], portMAX_DELAY);
         }
         if(1){
-            for(int i = 0; i < Y; i++){  //TODO: Bounds
+            for(int i = 0; i < Y; i++){
                 for(int j = 0; i < X; i++){
                     xQueueReceive(videoRx, *video[i][j], portMAX_DELAY);
                 }
