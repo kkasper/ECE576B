@@ -18,6 +18,7 @@
 
 //Defines
 //TODO: Defines
+//TODO: Priority
 #define H_PROXSENS_PRIORITY          x
 #define H_IMU_PRIORITY               x
 #define H_GPS_PRIORITY               x
@@ -28,9 +29,12 @@
 #define H_MONITOR_PRIORITY           x
 #define H_BIGCHUNGUS_PRIORITY        x //MAX
 
-#define PROX_SYNC_BITS  10000000
-#define GPS_SYNC_BITS   01000000
-#define COM_SYNC_BITS   00100000
+#define PROX_SYNC_BITS  10000110
+#define GPS_SYNC_BITS   01010110
+#define COM_SYNC_BITS   00101011
+#define PROX_START_BITS 10000000
+#define GPS_START_BITS  01000000
+#define COM_START_BITS  00100000
 #define T_PROX_SYNC     00010000
 #define T_GPS_SYNC      00001000
 #define T_COM_SYNC      00000100
@@ -54,7 +58,7 @@ static void monitor(void *pvParameters);
 //Queues Handles
 static QueueHandle_t proxRx     = NULL;
 static QueueHandle_t imuRx      = NULL;
-static QueueHandle_t gpsRx      = NULL;
+//static QueueHandle_t gpsRx      = NULL;
 static QueueHandle_t gpsTx      = NULL;
 static QueueHandle_t videoRx    = NULL;
 static QueueHandle_t videoTx    = NULL;
@@ -117,15 +121,15 @@ static void bigChungus(void *pvParameters)
     double trashD;
     int8_t trashI;
     EventBits_t uxReturn;
-    EventBits_t prox_start_bits = ;
-    EventBits_t gps_start_bits = ;
-    EventBits_t com_start_bits = ;
+    EventBits_t prox_start_bits = PROX_START_BITS;
+    EventBits_t gps_start_bits = GPS_START_BITS;
+    EventBits_t com_start_bits = COM_START_BITS;
     //TODO: think about deadlock
     for(;;){
         if(uxQueueMessagesWaiting(proxRx) > 0){
             uxReturn = xEventGroupSync(theBois, prox_start_bits, PROX_SYNC_BITS, DELAY);
             if(uxReturn == PROX_SYNC_BITS){
-                prox_start_bits = ;
+                prox_start_bits = PROX_SYNC_BITS;
                 xQueueReceive(proxRx, &trashD, portMAX_DELAY);
             }
             else{
@@ -135,7 +139,7 @@ static void bigChungus(void *pvParameters)
         if(uxQueueMessagesWaiting(gpsTx) > 0){
             uxReturn = xEventGroupSync(theBois, gps_start_bits, GPS_SYNC_BITS, DELAY);
             if(uxReturn == GPS_SYNC_BITS){
-                gps_start_bits = ;
+                gps_start_bits = GPS_SYNC_BITS;
                 xQueueReceive(proxRx, &trashD, portMAX_DELAY);
             }
             else{
@@ -145,7 +149,7 @@ static void bigChungus(void *pvParameters)
         if(uxQueueMessagesWaiting(commandTx) > 0){
             uxReturn = xEventGroupSync(theBois, com_start_bits, COM_SYNC_BITS, DELAY);
             if(uxReturn == COM_SYNC_BITS){
-                com_start_bits = ;
+                com_start_bits = COM_SYNC_BITS;
                 xQueueReceive(proxRx, &trashI, portMAX_DELAY);
             }
             else{
@@ -170,9 +174,9 @@ static void proxSens(void *pvParameters)
     
     for( ;; ){
         for(int i = 0; i < 3; i++){
-            xEventGroupWaitBits(theBois, , pdFALSE, portMAX_DELAY);
+            xEventGroupWaitBits(theBois, GPS_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
             xQueuePeek(gpsTx, *gps, portMAX_DELAY);
-            xEventGroupSync(theBois, , GPS_SYNC_BITS, portMAX_DELAY);
+            xEventGroupSync(theBois, T_PROX_SYNC, GPS_SYNC_BITS, portMAX_DELAY);
             distance[2*i] = (bounds[i] - gps < bound_cond) ? (bounds[i] - gps) : -1;
             distance[2*i + 1] = (gps - bounds[i] < bound_cond) ? (gps - bounds[i]) : -1;
         }
@@ -216,9 +220,9 @@ static void gps(void *pvParameters)
     for( ;; ){
         for(int i = 0; i < 3; i++){
             //TODO: peek
-            xEventGroupWaitBits(, , , , );
+            xEventGroupWaitBits(theBois, COM_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
             xQueuePeek(commandTx, *control[i], portMAX_DELAY);
-            xEventGroupSync(theBois, , , portMAX_DELAY);
+            xEventGroupSync(theBois, T_GPS_SYNC, COM_SYNC_BITS, portMAX_DELAY);
         }
         for(int i = 0; i < 3; i++){
             location[i] += ;//TODO: math
@@ -312,9 +316,9 @@ static void motor(void *pvParameters)
     for( ;; ){
         for(int i = 0; i < 3; i++){
             //TODO: xQueuePeek
-            xEventGroupWaitBits(, , , , );
+            xEventGroupWaitBits(theBois, COM_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
             xQueuePeek(commandTx, *control[i], portMAX_DELAY);
-            xEventGroupSync(theBois, , , portMAX_DELAY);
+            xEventGroupSync(theBois, T_MOTO_SYNC, COM_SYNC_BITS, portMAX_DELAY);
         }
         //TODO: MATH
         for(int i = 0; i < 4; i++){
@@ -344,29 +348,29 @@ static void monitor()
     //TODO: xQueue
     for( ;; ){
         for(int i = 0; i < 3; i++){
-            xEventGroupWaitBits(, , , , );
-            xQueuePeek(, *gps[i], portMAX_DELAY);
-            xEventGroupSync(theBois, , , portMAX_DELAY);
-            xEventGroupWaitBits(, , , , );
+            xEventGroupWaitBits(theBois, GPS_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
+            xQueuePeek(gpsTx, *gps[i], portMAX_DELAY);
+            xEventGroupSync(theBois, T_MON_SYNC, GPS_SYNC_BITS, portMAX_DELAY);
+            xEventGroupWaitBits(theBois, , pdFALSE, pdTRUE, portMAX_DELAY);
             xQueuePeek(commandRx, *commandRAW[i], portMAX_DELAY);
-            xEventGroupSync(theBois, , , portMAX_DELAY);
-            xEventGroupWaitBits(, , , , );
+            xEventGroupSync(theBois, T_MON_SYNC, , portMAX_DELAY);
+            xEventGroupWaitBits(theBois, COM_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
             xQueuePeek(commandTx, *commandWRAPPED[i], portMAX_DELAY);
-            xEventGroupSync(theBois, , , portMAX_DELAY);
+            xEventGroupSync(theBois, T_MON_SYNC, COM_SYNC_BITS, portMAX_DELAY);
         }
         for(int i = 0; i < 4; i++){
-            motor[i] = xQueueReceive(, , );
+            xQueueReceive(motorTx, *motor[i], portMAX_DELAY);
         }
         for(int i = 0; i < 6; i++){
-            xEventGroupWaitBits(, , , , );
-            xQueuePeek(, *prox[i], portMAX_DELAY);
-            xEventGroupSync(theBois, , , portMAX_DELAY);
-            imu[i] = xQueueReceive(, , );
+            xEventGroupWaitBits(theBois, PROX_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
+            xQueuePeek(proxRx, *prox[i], portMAX_DELAY);
+            xEventGroupSync(theBois, T_MON_SYNC, PROX_SYNC_BITS, portMAX_DELAY);
+            xQueueReceive(imuRx, *imu[i], portMAX_DELAY);
         }
         if(1){
             for(int i = 0; i < ; i++){  //TODO: Bounds
                 for(int j = 0; i < ; i++){
-                    video[i][j] = xQueueReceive(, , );
+                    xQueueReceive(videoRx, *video[i][j], portMAX_DELAY);
                 }
             }
         }
