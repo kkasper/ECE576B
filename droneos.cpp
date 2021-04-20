@@ -9,8 +9,8 @@
 /* Kernel includes. */
 #include "FreeRTOS.h"
 #include "task.h"
-#include "timers.h"
-#include "semphr.h"
+//#include "timers.h"
+//#include "semphr.h"
 #include "event_groups.h"
 
 /* Local includes. */
@@ -52,9 +52,9 @@ static void gps(void *pvParameters);
 static void videoFeed(void *pvParameters);
 static void videoForward(void *pvParameters);
 //static void videoMon(void *pvParameters)
-//static void proxMon(void *pvParameters);//TODO: Something
+//static void proxMon(void *pvParameters);
 static void control(void *pvParameters);
-//static void imuMon(void *pvParameters);//TODO: Something
+//static void imuMon(void *pvParameters);
 static void motor(void *pvParameters);
 //static void motorMon(void *pvParameters);
 static void monitor(void *pvParameters);
@@ -89,7 +89,6 @@ static EventGroupHandle_t comsEvent = NULL;
 
 void main_drone(void)
 {
-    //TODO: xQueueCreate
     proxRx      = xQueueCreate(6, sizeof(double));//
     imuRx       = xQueueCreate(6, sizeof(double));
     //gpsRx       = xQueueCreate(3, sizeof(double));//
@@ -100,7 +99,6 @@ void main_drone(void)
     commandTx   = xQueueCreate(3, sizeof(int8_t));//
     motorTx     = xQueueCreate(4, sizeof(uint8_t));
     
-    //TODO: initialize Queues gps, 
     double gpsInit[] = {0, 0, 0};
     for(int i = 0; i < 3; i++){
         xQueueSend(gpsTx, &gpsInit[i], portMAX_DELAY);
@@ -233,7 +231,7 @@ static void gps(void *pvParameters)
             xEventGroupSync(comsEvent, T_GPS_SYNC, COM_SYNC_BITS, portMAX_DELAY);
         }
         for(int i = 0; i < 3; i++){
-            location[i] += control[i] / 128;
+            location[i] += (double)control[i] / 128.0;
         }
         for(int i = 0; i < 3; i++){
             xQueueSend(gpsTx, location[i], portMAX_DELAY);
@@ -323,6 +321,7 @@ static void motor(void *pvParameters)
 {
     uint8_t pwm[4]; //each motor 0 to 255 (rpm? Top speed is 255?)
     int8_t control[3]; //x, y, z: -127 full reverse, 128 full forward
+    double mag = 0, ang = 0, zMult;
     for( ;; ){
         for(int i = 0; i < 3; i++){
             xEventGroupWaitBits(comsEvent, COM_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
@@ -330,6 +329,9 @@ static void motor(void *pvParameters)
             xEventGroupSync(comsEvent, T_MOTO_SYNC, COM_SYNC_BITS, portMAX_DELAY);
         }
         //TODO: MATH
+        mag = sqrt(pow((double)control[0] / 128.0, 2.0) + pow((double)control[1] / 128.0, 2.0));
+        ang = atan((double)control[0] / (double)control[1]);
+        zMult = (double)control[2] / 128.0;
         for(int i = 0; i < 4; i++){
             xQueueSend(motorTx, &pwm[i], portMAX_DELAY);
         }
@@ -353,7 +355,7 @@ static void monitor()
     int8_t  commandWRAPPED[3];
     uint8_t motor[4];
     
-    //TODO: Mucho xQueuePeek
+    //TODO: xQueuePeek commandRAW
     for( ;; ){
         for(int i = 0; i < 3; i++){
             xEventGroupWaitBits(gpsEvent, GPS_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
