@@ -18,6 +18,10 @@
 
 //Defines
 //TODO: Defines
+#define FRAME   
+#define X       
+#define Y       
+
 //TODO: Priority
 #define H_PROXSENS_PRIORITY          x
 #define H_IMU_PRIORITY               x
@@ -219,13 +223,14 @@ static void gps(void *pvParameters)
     
     for( ;; ){
         for(int i = 0; i < 3; i++){
-            //TODO: peek
             xEventGroupWaitBits(theBois, COM_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
             xQueuePeek(commandTx, *control[i], portMAX_DELAY);
             xEventGroupSync(theBois, T_GPS_SYNC, COM_SYNC_BITS, portMAX_DELAY);
         }
         for(int i = 0; i < 3; i++){
-            location[i] += ;//TODO: math
+            location[i] += control[i] / 128;
+        }
+        for(int i = 0; i < 3; i++){
             xQueueSend(gpsTx, location[i], portMAX_DELAY);
         }
     }
@@ -244,9 +249,9 @@ static void videoFeed()
     char vid[][][]; //[Frame][x pixels][y pixels]
     
     for( ;; ){
-        for(int i = 0; i < frame; i++){
-            for(int j = 0; j < x; j++){
-                for(int k = 0; k < y; k++){
+        for(int i = 0; i < FRAME; i++){
+            for(int j = 0; j < Y; j++){
+                for(int k = 0; k < X; k++){
                     xQueueSend(videoRx, &vid[i][j][k], portMAX_DELAY);
                 }
             }
@@ -266,13 +271,13 @@ static void videoForward(void *pvParameters)
     //Do we want to direct forawrd each "pixel"
     for( ;; ){
         while(0);
-        for(int i = 0; i < x; i++){
-            for(int j = 0; j < y; j++){
+        for(int i = 0; i < Y; i++){
+            for(int j = 0; j < X; j++){
                 xQueueReceive(videoRx, *frame[i][j], portMAX_DELAY);
             }
         }
-        for(int i = 0; i < x; i++){
-            for(int j = 0; j < y; j++){
+        for(int i = 0; i < Y; i++){
+            for(int j = 0; j < X; j++){
                 xQueueSend(videoTx, &frame[i][j], portMAX_DELAY);
             }
         }
@@ -315,7 +320,6 @@ static void motor(void *pvParameters)
     int8_t control[3]; //x, y, z: -127 full reverse, 128 full forward
     for( ;; ){
         for(int i = 0; i < 3; i++){
-            //TODO: xQueuePeek
             xEventGroupWaitBits(theBois, COM_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
             xQueuePeek(commandTx, *control[i], portMAX_DELAY);
             xEventGroupSync(theBois, T_MOTO_SYNC, COM_SYNC_BITS, portMAX_DELAY);
@@ -368,8 +372,8 @@ static void monitor()
             xQueueReceive(imuRx, *imu[i], portMAX_DELAY);
         }
         if(1){
-            for(int i = 0; i < ; i++){  //TODO: Bounds
-                for(int j = 0; i < ; i++){
+            for(int i = 0; i < Y; i++){  //TODO: Bounds
+                for(int j = 0; i < X; i++){
                     xQueueReceive(videoRx, *video[i][j], portMAX_DELAY);
                 }
             }
