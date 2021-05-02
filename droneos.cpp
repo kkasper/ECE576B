@@ -23,16 +23,15 @@
 #define X       
 #define Y       
 
-//TODO: Priority
-#define H_PROXSENS_PRIORITY          x
-#define H_IMU_PRIORITY               x
-#define H_GPS_PRIORITY               x
-#define H_VIDEOFEED_PRIORITY         x
-#define H_VIDEOFORWARD_PRIORITY      x
-#define H_CONTROL_PRIORITY           x
-#define H_MOTOR_PRIORITY             x
-#define H_MONITOR_PRIORITY           x
-#define H_BIGCHUNGUS_PRIORITY        x //MAX
+#define H_PROXSENS_PRIORITY          30
+#define H_IMU_PRIORITY               26
+#define H_GPS_PRIORITY               30
+#define H_VIDEOFEED_PRIORITY         25
+#define H_VIDEOFORWARD_PRIORITY      25
+#define H_CONTROL_PRIORITY           30
+#define H_MOTOR_PRIORITY             30
+#define H_MONITOR_PRIORITY           29
+#define H_BIGCHUNGUS_PRIORITY        31 //MAX
 
 #define PROX_SYNC_BITS  100110
 #define GPS_SYNC_BITS   110110
