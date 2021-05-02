@@ -19,7 +19,6 @@
 #include "console.h"
 
 //Defines
-//TODO: Defines
 #define FRAME   97
 #define X       86
 #define Y       26
@@ -257,7 +256,6 @@ static void gps(void *pvParameters)
 **/
 static void videoFeed()
 {
-    //TODO: ASCI image array thing
     //char vid[FRAME][Y][X]; //[Frame][Y pixels][X pixels]
     
     for( ;; ){
