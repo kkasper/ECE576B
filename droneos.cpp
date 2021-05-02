@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <math.h>
+#include <iostream>
 
 /* Kernel includes. */
 #include "FreeRTOS.h"
@@ -19,9 +20,9 @@
 
 //Defines
 //TODO: Defines
-#define FRAME   
-#define X       
-#define Y       
+#define FRAME   97
+#define X       86
+#define Y       26
 
 #define H_PROXSENS_PRIORITY          30
 #define H_IMU_PRIORITY               26
@@ -81,6 +82,8 @@ static EventGroupHandle_t proxEvent = NULL;
 static EventGroupHandle_t gpsEvent  = NULL;
 static EventGroupHandle_t comsEvent = NULL;
 
+char vid[FRAME][Y][X];
+
 void main_drone(void)
 {
     proxRx      = xQueueCreate(6, sizeof(double));
@@ -96,6 +99,19 @@ void main_drone(void)
     for(int i = 0; i < 3; i++){
         xQueueSend(gpsTx, &gpsInit[i], portMAX_DELAY);
     }*/
+    char vidLineTemp[X];
+    ifstream vidFile.open("video.csv");
+    for(int i = 0; i < FRAME; i++){
+        for(int j = 0; j < Y; j++){
+            vidFile.getline(vidLineTemp, X);
+            for(int k = 0; k < X; k++){
+                vid[i][j][k] = vidLineTemp[k];
+            }
+        }
+        
+    }
+        
+    vidFile.close();
     
     proxEvent = xEventGroupCreate();
     gpsEvent = xEventGroupCreate();
@@ -242,7 +258,7 @@ static void gps(void *pvParameters)
 static void videoFeed()
 {
     //TODO: ASCI image array thing
-    char vid[FRAME][Y][X]; //[Frame][Y pixels][X pixels]
+    //char vid[FRAME][Y][X]; //[Frame][Y pixels][X pixels]
     
     for( ;; ){
         for(int i = 0; i < FRAME; i++){
