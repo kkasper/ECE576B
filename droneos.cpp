@@ -49,21 +49,16 @@
 static void proxSens(void *pvParameters);
 static void imu(void *pvParameters);
 static void gps(void *pvParameters);
-//static void gpsMon(void *pvParameters);
 static void videoFeed(void *pvParameters);
 static void videoForward(void *pvParameters);
-//static void videoMon(void *pvParameters)
-//static void proxMon(void *pvParameters);
 static void control(void *pvParameters);
-//static void imuMon(void *pvParameters);
 static void motor(void *pvParameters);
-//static void motorMon(void *pvParameters);
 static void monitor(void *pvParameters);
+static void bigChungus(void *pvParameters);
 
 //Queues Handles
 static QueueHandle_t proxRx     = NULL;
 static QueueHandle_t imuRx      = NULL;
-//static QueueHandle_t gpsRx      = NULL;
 static QueueHandle_t gpsTx      = NULL;
 static QueueHandle_t videoRx    = NULL;
 static QueueHandle_t videoTx    = NULL;
@@ -83,21 +78,19 @@ static TaskHandle_t h_monitor       = NULL;
 static TaskHandle_t h_bigChungus    = NULL;
 
 //Event Group Handle
-//static EventGroupHandle_t theBois = NULL;
 static EventGroupHandle_t proxEvent = NULL;
 static EventGroupHandle_t gpsEvent = NULL;
 static EventGroupHandle_t comsEvent = NULL;
 
 void main_drone(void)
 {
-    proxRx      = xQueueCreate(6, sizeof(double));//
+    proxRx      = xQueueCreate(6, sizeof(double));
     imuRx       = xQueueCreate(6, sizeof(double));
-    //gpsRx       = xQueueCreate(3, sizeof(double));//
-    gpsTx       = xQueueCreate(3, sizeof(double));//
+    gpsTx       = xQueueCreate(3, sizeof(double));
     videoRx     = xQueueCreate(, sizeof(char));
     videoTx     = xQueueCreate(, sizeof(char));
     commandRx   = xQueueCreate(3, sizeof(int8_t));
-    commandTx   = xQueueCreate(3, sizeof(int8_t));//
+    commandTx   = xQueueCreate(3, sizeof(int8_t));
     motorTx     = xQueueCreate(4, sizeof(uint8_t));
     
     double gpsInit[] = {0, 0, 0};
