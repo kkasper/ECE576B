@@ -78,7 +78,7 @@ static TaskHandle_t h_bigChungus    = NULL;
 
 //Event Group Handle
 static EventGroupHandle_t proxEvent = NULL;
-static EventGroupHandle_t gpsEvent = NULL;
+static EventGroupHandle_t gpsEvent  = NULL;
 static EventGroupHandle_t comsEvent = NULL;
 
 void main_drone(void)
@@ -347,7 +347,7 @@ static void monitor()
     char    video[Y][X];
     int8_t  commandRAW[3];
     int8_t  commandWRAPPED[3];
-    uint8_t motor[4];
+    uint8_t motor[3];
     
     for( ;; ){
         for(int i = 0; i < 3; i++){
@@ -376,5 +376,51 @@ static void monitor()
             }
         }
         //TODO: Write that shit
+        std::cout << "Video Feed:\n";
+        for(int i = 0; i < Y; i++){
+            for(int j = 0; j < X; j++){
+                std::cout << video[i][j];
+            }
+            std::cout << "\n";
+        }
+        std::cout << "\n\n\n";
+        
+        std::cout << "GPS: ";
+        for(int i = 0; i < 3; i++){
+            std::cout << gps[i];
+            if(i < 2) std::cout << ", ";
+        }
+        std::cout << "\n";
+        std::cout << "Proximity: ";
+        for(int i = 0; i < 6; i++){
+            std::cout << prox[i];
+            if(i < 5) std::cout << ", ";
+        }
+        std::cout << "\n";
+        std::cout << "IMU: ";
+        for(int i = 0; i < 6; i++){
+            std::cout << imu[i];
+            if(i < 5) std::cout << ", ";
+        }
+        
+        std::cout << "\n\n\n";
+        std::cout << "Raw Command Data: ";
+        for(int i = 0; i < 3; i++){
+            std::cout << commandRAW[i];
+            if(i < 2) std::cout << ", ";
+        }
+        std::cout << "\n";
+        std::cout << "Proccessed Command Data";
+        for(int i = 0; i < 3; i++){
+            std::cout << commandWRAPPED[i];
+            if(i < 2) std::cout << ", ";
+        }
+        std::cout << "\n";
+        std::cout << "Motor Output: ";
+        for(int i = 0; i < 3; i++){
+            std::cout << motor[i];
+            if(i < 2) std::cout << ", ";
+        }
+        std::cout << endl;
     }
 }
