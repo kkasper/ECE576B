@@ -293,15 +293,40 @@ static void videoForward(void *pvParameters)
 **/
 static void control(void *pvParameters)
 {
+    double prox[6];
     int8_t commandRAW[3];
     int8_t commandWRAPPED[3];
+    int8_t COMMAND = {
+                        {1, 3, 6},
+                        {20, 30, 40},
+                        {8, 12, 15},
+                        {67, 89, 47},
+                        {21, 31, 41},
+                        {88, 99, 103},
+                        {27, 46, 89},
+                        {99, 120, 80},
+                        {100, 90, 80},
+                        {20, 48, 56},
+                        {77, 99, 67},
+                        {77, 82, 92}
+                    }
+    int j = 0;
     
     for( ;; ){
-        
+        for(int i = 0; i < 6; i++){
+            xEventGroupWaitBits(proxEvent, PROX_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
+            xQueuePeek(proxRx, *prox[i], portMAX_DELAY);
+            xEventGroupSync(proxEvent, T_COM_SYNC, PROX_SYNC_BITS, portMAX_DELAY);
+            commandRAW[i] = COMMAND[j][i];
+        }
+        for(int i = 0; i < 3; i++){
+            //TODO: Pain in the ass
+        }
         for(int i = 0; i < 3; i++){
             xQueueSend(commandRx, &commandRAW[i], portMAX_DELAY);
             xQueueSend(commandTx, &commandWRAPPED[i], portMAX_DELAY);
         }
+        j = (j < 12) ? j + 1 : 0;
     }
 }
 
