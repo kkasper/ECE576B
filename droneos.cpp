@@ -121,7 +121,7 @@ void main_drone(void)
     
     vTaskStartScheduler();
     
-    for( ;; ); // <-- We go beyond this, the code breaks.
+    for( ;; );
 }
 
 static void bigChungus(void *pvParameters)
@@ -250,7 +250,7 @@ static void gps(void *pvParameters)
 static void videoFeed()
 {
     //TODO: ASCI image array thing
-    char vid[][][]; //[Frame][x pixels][y pixels]
+    char vid[FRAME][Y][X]; //[Frame][Y pixels][X pixels]
     
     for( ;; ){
         for(int i = 0; i < FRAME; i++){
@@ -270,7 +270,7 @@ static void videoFeed()
 **/
 static void videoForward(void *pvParameters)
 {
-    char frame[][]; //[x pixel][y pixel]
+    char frame[Y][X]; //[Y pixel][X pixel]
     
     //Do we want to direct forawrd each "pixel"
     for( ;; ){
@@ -306,10 +306,12 @@ static void control(void *pvParameters)
     
     for( ;; ){
         
+        for(int i = 0; i < 3; i++){
+            xQueueSend(commandRx, &commandRAW[i], portMAX_DELAY);
+            xQueueSend(commandTx, &commandWRAPPED[i], portMAX_DELAY);
+        }
     }
 }
-
-//static void imuMon(void *pvParameters){}
 
 /** @fn static void motor()
 *   @brief Outputs the motor information for each of the four rotors in the
@@ -320,20 +322,19 @@ static void control(void *pvParameters)
 **/
 static void motor(void *pvParameters)
 {
-    uint8_t pwm[4]; //each motor 0 to 255 (rpm? Top speed is 255?)
+    uint8_t pwm[3]; //each motor 0 to 255 (rpm? Top speed is 255?)
     int8_t control[3]; //x, y, z: -127 full reverse, 128 full forward
-    double mag = 0, ang = 0, zMult;
     for( ;; ){
         for(int i = 0; i < 3; i++){
             xEventGroupWaitBits(comsEvent, COM_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
             xQueuePeek(commandTx, *control[i], portMAX_DELAY);
             xEventGroupSync(comsEvent, T_MOTO_SYNC, COM_SYNC_BITS, portMAX_DELAY);
         }
-        //TODO: MATH
-        mag = sqrt(pow((double)control[0] / 128.0, 2.0) + pow((double)control[1] / 128.0, 2.0));
-        ang = atan((double)control[0] / (double)control[1]);
-        zMult = (double)control[2] / 128.0;
-        for(int i = 0; i < 4; i++){
+        
+        pwm[0] = sqrt(pow((double)control[0] / 128.0, 2.0) + pow((double)control[1] / 128.0, 2.0)); //rho
+        pwm[1] = atan((double)control[0] / (double)control[1]); //phi
+        pwm[2] = (double)control[2] / 128.0; //z
+        for(int i = 0; i < 3; i++){
             xQueueSend(motorTx, &pwm[i], portMAX_DELAY);
         }
     }
@@ -351,38 +352,35 @@ static void monitor()
     double  prox[6];
     double  imu[6];
     double  gps[3];
-    char    video[][];
+    char    video[Y][X];
     int8_t  commandRAW[3];
     int8_t  commandWRAPPED[3];
     uint8_t motor[4];
     
-    //TODO: xQueuePeek commandRAW
     for( ;; ){
         for(int i = 0; i < 3; i++){
             xEventGroupWaitBits(gpsEvent, GPS_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
             xQueuePeek(gpsTx, *gps[i], portMAX_DELAY);
             xEventGroupSync(gpsEvent, T_MON_SYNC, GPS_SYNC_BITS, portMAX_DELAY);
-            xEventGroupWaitBits(theBois, , pdFALSE, pdTRUE, portMAX_DELAY);
-            xQueuePeek(commandRx, *commandRAW[i], portMAX_DELAY);
-            xEventGroupSync(theBois, T_MON_SYNC, , portMAX_DELAY);
+            
             xEventGroupWaitBits(comsEvent, COM_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
             xQueuePeek(commandTx, *commandWRAPPED[i], portMAX_DELAY);
             xEventGroupSync(comsEvent, T_MON_SYNC, COM_SYNC_BITS, portMAX_DELAY);
         }
-        for(int i = 0; i < 4; i++){
+        for(int i = 0; i < 3; i++){
             xQueueReceive(motorTx, *motor[i], portMAX_DELAY);
+            xQueueReceive(commandRx, *commandRAW[i], portMAX_DELAY);
         }
         for(int i = 0; i < 6; i++){
             xEventGroupWaitBits(proxEvent, PROX_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
             xQueuePeek(proxRx, *prox[i], portMAX_DELAY);
             xEventGroupSync(proxEvent, T_MON_SYNC, PROX_SYNC_BITS, portMAX_DELAY);
+            
             xQueueReceive(imuRx, *imu[i], portMAX_DELAY);
         }
-        if(1){
-            for(int i = 0; i < Y; i++){
-                for(int j = 0; i < X; i++){
-                    xQueueReceive(videoRx, *video[i][j], portMAX_DELAY);
-                }
+        for(int i = 0; i < Y; i++){
+            for(int j = 0; j < X; j++){
+                xQueueReceive(videoRx, *video[i][j], portMAX_DELAY);
             }
         }
         //TODO: Write that shit
