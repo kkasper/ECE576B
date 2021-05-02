@@ -92,10 +92,10 @@ void main_drone(void)
     commandTx   = xQueueCreate(3, sizeof(int8_t));
     motorTx     = xQueueCreate(4, sizeof(uint8_t));
     
-    double gpsInit[] = {0, 0, 0};
+    /*double gpsInit[] = {0, 0, 0};
     for(int i = 0; i < 3; i++){
         xQueueSend(gpsTx, &gpsInit[i], portMAX_DELAY);
-    }
+    }*/
     
     proxEvent = xEventGroupCreate();
     gpsEvent = xEventGroupCreate();
@@ -214,7 +214,7 @@ static void imu()
 **/
 static void gps(void *pvParameters)
 {
-    double location[3] = {, , };//x, y, z
+    double location[3] = {0, 0, 0};//x, y, z
     int8_t control[3]; //x, y, z: -127 full reverse, 128 full forward
     
     for( ;; ){
@@ -321,6 +321,7 @@ static void control(void *pvParameters)
         }
         for(int i = 0; i < 3; i++){
             //TODO: Pain in the ass
+            commandWRAPPED[i] = commandRAW[i];
         }
         for(int i = 0; i < 3; i++){
             xQueueSend(commandRx, &commandRAW[i], portMAX_DELAY);
