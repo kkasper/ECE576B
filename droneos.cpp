@@ -376,6 +376,7 @@ static void monitor()
             }
         }
         //TODO: Write that shit
+        if (system("CLS")) system("clear");//BAD
         std::cout << "Video Feed:\n";
         for(int i = 0; i < Y; i++){
             for(int j = 0; j < X; j++){
