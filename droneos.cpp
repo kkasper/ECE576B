@@ -19,7 +19,7 @@
 #include "console.h"
 
 //Defines
-#define FRAME   278
+#define FRAME   417
 #define X       86
 #define Y       52
 
@@ -97,7 +97,7 @@ extern "C" void main_blinky(void)
     
     char vidLineTemp[X];
     std::ifstream vidFile;
-    vidFile.open("movie2.csv");
+    vidFile.open("hiresmovieLONG.csv");
     for(int i = 0; i < FRAME; i++){
         for(int j = 0; j < Y; j++){
             vidFile.getline(vidLineTemp, X);
