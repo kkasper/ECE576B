@@ -7,43 +7,38 @@
 #include <stdlib.h>
 #include <math.h>
 #include <iostream>
+#include <fstream>
 
 /* Kernel includes. */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"
 #include "semphr.h"
-#include "event_groups.h"
 
 /* Local includes. */
 #include "console.h"
 
 //Defines
-#define FRAME   97
+#define FRAME   278
 #define X       86
-#define Y       26
+#define Y       52
+
+/*#define FRAME   278
+#define X       66
+#define Y       40*/
 
 #define H_PROXSENS_PRIORITY          30
-#define H_IMU_PRIORITY               26
+#define H_IMU_PRIORITY               30
 #define H_GPS_PRIORITY               30
-#define H_VIDEOFEED_PRIORITY         25
-#define H_VIDEOFORWARD_PRIORITY      25
+#define H_VIDEOFEED_PRIORITY         30
+#define H_VIDEOFORWARD_PRIORITY      30
 #define H_CONTROL_PRIORITY           30
 #define H_MOTOR_PRIORITY             30
-#define H_MONITOR_PRIORITY           29
-#define H_BIGCHUNGUS_PRIORITY        31 //MAX
+#define H_MONITOR_PRIORITY           30
 
-#define PROX_SYNC_BITS  100110
-#define GPS_SYNC_BITS   110110
-#define COM_SYNC_BITS   101011
-#define PROX_START_BITS 100000
-#define GPS_START_BITS  100000
-#define COM_START_BITS  100000
-#define T_PROX_SYNC     010000
-#define T_GPS_SYNC      001000
-#define T_COM_SYNC      000100
-#define T_MON_SYNC      000010
-#define T_MOTO_SYNC     000001
+
+#define DELAY 1000
+#define BUFFER_SCALE 10
 
 static void proxSens(void *pvParameters);
 static void imu(void *pvParameters);
@@ -53,17 +48,20 @@ static void videoForward(void *pvParameters);
 static void control(void *pvParameters);
 static void motor(void *pvParameters);
 static void monitor(void *pvParameters);
-static void bigChungus(void *pvParameters);
 
 //Queues Handles
-static QueueHandle_t proxRx     = NULL;
-static QueueHandle_t imuRx      = NULL;
-static QueueHandle_t gpsTx      = NULL;
-static QueueHandle_t videoRx    = NULL;
-static QueueHandle_t videoTx    = NULL;
-static QueueHandle_t commandRx  = NULL;
-static QueueHandle_t commandTx  = NULL;
-static QueueHandle_t motorTx    = NULL;
+static QueueHandle_t proxRxCon      = NULL;
+static QueueHandle_t proxRxMon      = NULL;
+static QueueHandle_t imuRx          = NULL;
+static QueueHandle_t gpsTxProx      = NULL;
+static QueueHandle_t gpsTxMon       = NULL;
+static QueueHandle_t videoRx        = NULL;
+static QueueHandle_t videoTx        = NULL;
+static QueueHandle_t commandRx      = NULL;
+static QueueHandle_t commandTxGPS   = NULL;
+static QueueHandle_t commandTxMot   = NULL;
+static QueueHandle_t commandTxMon   = NULL;
+static QueueHandle_t motorTx        = NULL;
 
 //Task Handles
 static TaskHandle_t h_proxSens      = NULL;
@@ -74,47 +72,52 @@ static TaskHandle_t h_videoForward  = NULL;
 static TaskHandle_t h_control       = NULL;
 static TaskHandle_t h_motor         = NULL;
 static TaskHandle_t h_monitor       = NULL;
-static TaskHandle_t h_bigChungus    = NULL;
-
-//Event Group Handle
-static EventGroupHandle_t proxEvent = NULL;
-static EventGroupHandle_t gpsEvent  = NULL;
-static EventGroupHandle_t comsEvent = NULL;
 
 char vid[FRAME][Y][X];
 
-void main_blinky(void)
+extern "C" void main_blinky(void)
 {
-    proxRx      = xQueueCreate(6, sizeof(double));
-    imuRx       = xQueueCreate(6, sizeof(double));
-    gpsTx       = xQueueCreate(3, sizeof(double));
-    videoRx     = xQueueCreate(X * Y, sizeof(char));
-    videoTx     = xQueueCreate(X * Y, sizeof(char));
-    commandRx   = xQueueCreate(3, sizeof(int8_t));
-    commandTx   = xQueueCreate(3, sizeof(int8_t));
-    motorTx     = xQueueCreate(4, sizeof(uint8_t));
+    proxRxCon       = xQueueCreate(6 * BUFFER_SCALE, sizeof(double));
+    proxRxMon       = xQueueCreate(6 * BUFFER_SCALE, sizeof(double));
+    imuRx           = xQueueCreate(6 * BUFFER_SCALE, sizeof(double));
+    gpsTxProx       = xQueueCreate(3 * BUFFER_SCALE, sizeof(double));
+    gpsTxMon        = xQueueCreate(3 * BUFFER_SCALE, sizeof(double));
+    videoRx         = xQueueCreate(X * Y * BUFFER_SCALE, sizeof(char));
+    videoTx         = xQueueCreate(X * Y * BUFFER_SCALE, sizeof(char));
+    commandRx       = xQueueCreate(3 * BUFFER_SCALE, sizeof(int8_t));
+    commandTxGPS    = xQueueCreate(3 * BUFFER_SCALE, sizeof(int8_t));
+    commandTxMot    = xQueueCreate(3 * BUFFER_SCALE, sizeof(int8_t));
+    commandTxMon    = xQueueCreate(3 * BUFFER_SCALE, sizeof(int8_t));
+    motorTx         = xQueueCreate(4 * BUFFER_SCALE, sizeof(uint8_t));
     
     /*double gpsInit[] = {0, 0, 0};
     for(int i = 0; i < 3; i++){
         xQueueSend(gpsTx, &gpsInit[i], portMAX_DELAY);
     }*/
-    /*char vidLineTemp[X];
-    ifstream vidFile.open("video.csv");
+    
+    char vidLineTemp[X];
+    std::ifstream vidFile;
+    vidFile.open("movie2.csv");
     for(int i = 0; i < FRAME; i++){
         for(int j = 0; j < Y; j++){
             vidFile.getline(vidLineTemp, X);
             for(int k = 0; k < X; k++){
                 vid[i][j][k] = vidLineTemp[k];
             }
+            vidFile.clear();
         }
-        
     }
-        
-    vidFile.close();*/
+    /*for(int i = 0; i < Y; i++){
+        for(int j = 0; j < X; j++){
+            std::cout << vid[0][i][j];
+        }
+        std::cout << std::endl;
+        //std::cout << "\n";
+    }*/
+    //std::cout << std::endl;
     
-    proxEvent = xEventGroupCreate();
-    gpsEvent = xEventGroupCreate();
-    comsEvent = xEventGroupCreate();
+        
+    vidFile.close();
     
     xTaskCreate(proxSens, "PRXSN", configMINIMAL_STACK_SIZE, NULL, H_PROXSENS_PRIORITY, &h_proxSens);
     xTaskCreate(imu, "IMU", configMINIMAL_STACK_SIZE, NULL, H_IMU_PRIORITY, &h_imu);
@@ -124,54 +127,10 @@ void main_blinky(void)
     xTaskCreate(control, "CON", configMINIMAL_STACK_SIZE, NULL, H_CONTROL_PRIORITY, &h_control);
     xTaskCreate(motor, "MOT", configMINIMAL_STACK_SIZE, NULL, H_MOTOR_PRIORITY, &h_motor);
     xTaskCreate(monitor, "MON", configMINIMAL_STACK_SIZE, NULL, H_MONITOR_PRIORITY, &h_monitor);
-    xTaskCreate(bigChungus, "BC", configMINIMAL_STACK_SIZE, NULL, H_BIGCHUNGUS_PRIORITY, &h_bigChungus);
     
     vTaskStartScheduler();
     
     for( ;; );
-}
-
-static void bigChungus(void *pvParameters)
-{
-    double trashD;
-    int8_t trashI;
-    EventBits_t uxReturn;
-    EventBits_t prox_start_bits = PROX_START_BITS;
-    EventBits_t gps_start_bits = GPS_START_BITS;
-    EventBits_t com_start_bits = COM_START_BITS;
-    //TODO: think about deadlock
-    for(;;){
-        if(uxQueueMessagesWaiting(proxRx) > 0){
-            uxReturn = xEventGroupSync(proxEvent, prox_start_bits, PROX_SYNC_BITS, portMAX_DELAY);
-            if(uxReturn == PROX_SYNC_BITS){
-                prox_start_bits = PROX_SYNC_BITS;
-                xQueueReceive(proxRx, &trashD, portMAX_DELAY);
-            }
-            else{
-                prox_start_bits = uxReturn;
-            }
-        }
-        if(uxQueueMessagesWaiting(gpsTx) > 0){
-            uxReturn = xEventGroupSync(gpsEvent, gps_start_bits, GPS_SYNC_BITS, portMAX_DELAY);
-            if(uxReturn == GPS_SYNC_BITS){
-                gps_start_bits = GPS_SYNC_BITS;
-                xQueueReceive(gpsTx, &trashD, portMAX_DELAY);
-            }
-            else{
-                gps_start_bits = uxReturn;
-            }
-        }
-        if(uxQueueMessagesWaiting(commandTx) > 0){
-            uxReturn = xEventGroupSync(comsEvent, com_start_bits, COM_SYNC_BITS, portMAX_DELAY);
-            if(uxReturn == COM_SYNC_BITS){
-                com_start_bits = COM_SYNC_BITS;
-                xQueueReceive(commandTx, &trashI, portMAX_DELAY);
-            }
-            else{
-                com_start_bits = uxReturn;
-            }
-        }
-    }
 }
 
 /** @fn static void proxSens()
@@ -184,19 +143,21 @@ static void proxSens(void *pvParameters)
 {
     double distance[6]; //+x, -x, +y, -y, +z, -z
     double gps;
-    double bound_cond = 3.14;
-    double bounds[] = {10, 10, 10};
+    double bound_cond = 10;
+    double bounds[] = {100, -100, 100, -100, 100, -100};
     
     for( ;; ){
-        for(int i = 0; i < 3; i++){
-            xEventGroupWaitBits(gpsEvent, GPS_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
-            xQueuePeek(gpsTx, &gps, portMAX_DELAY);
-            xEventGroupSync(gpsEvent, T_PROX_SYNC, GPS_SYNC_BITS, portMAX_DELAY);
-            distance[2*i] = (bounds[i] - gps < bound_cond) ? (bounds[i] - gps) : -1;
-            distance[2*i + 1] = (gps - bounds[i] < bound_cond) ? (gps - bounds[i]) : -1;
-        }
-        for(int i = 0; i < 6; i++){
-            xQueueSend(proxRx, &distance[i], portMAX_DELAY);
+        if(uxQueueMessagesWaiting(gpsTxProx) >= 3){
+            for(int i = 0; i < 3; i++){
+                xQueueReceive(gpsTxProx, &gps, portMAX_DELAY);
+
+                distance[2*i] = (bounds[2*i] - gps < bound_cond) ? (bounds[2*i] - gps) : -1;
+                distance[2*i + 1] = (gps - bounds[2*i + 1] < bound_cond) ? (gps - bounds[2*i + 1]) : -1;
+            }
+            for(int i = 0; i < 6; i++){
+                xQueueSend(proxRxCon, &distance[i], portMAX_DELAY);
+                xQueueSend(proxRxMon, &distance[i], portMAX_DELAY);
+            }
         }
     }
 }
@@ -232,17 +193,23 @@ static void gps(void *pvParameters)
     double location[3] = {0, 0, 0};//x, y, z
     int8_t control[3]; //x, y, z: -127 full reverse, 128 full forward
     
+    for(int i = 0; i < 3; i++){
+        xQueueSend(gpsTxProx, &location[i], portMAX_DELAY);
+        xQueueSend(gpsTxMon, &location[i], portMAX_DELAY);
+    }
+    
     for( ;; ){
-        for(int i = 0; i < 3; i++){
-            xEventGroupWaitBits(comsEvent, COM_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
-            xQueuePeek(commandTx, &control[i], portMAX_DELAY);
-            xEventGroupSync(comsEvent, T_GPS_SYNC, COM_SYNC_BITS, portMAX_DELAY);
-        }
-        for(int i = 0; i < 3; i++){
-            location[i] += (double)control[i] / 128.0;
-        }
-        for(int i = 0; i < 3; i++){
-            xQueueSend(gpsTx, &location[i], portMAX_DELAY);
+        if(uxQueueMessagesWaiting(commandTxGPS) >= 3){
+            for(int i = 0; i < 3; i++){
+                xQueueReceive(commandTxGPS, &control[i], portMAX_DELAY);
+            }
+            for(int i = 0; i < 3; i++){
+                location[i] += (double)control[i] / 128.0;
+            }
+            for(int i = 0; i < 3; i++){
+                xQueueSend(gpsTxProx, &location[i], portMAX_DELAY);
+                xQueueSend(gpsTxMon, &location[i], portMAX_DELAY);
+            }
         }
     }
 }
@@ -280,18 +247,18 @@ static void videoForward(void *pvParameters)
     
     //Do we want to direct forawrd each "pixel"
     for( ;; ){
-        while(0);
-        for(int i = 0; i < Y; i++){
-            for(int j = 0; j < X; j++){
-                xQueueReceive(videoRx, &frame[i][j], portMAX_DELAY);
+        if(uxQueueMessagesWaiting(videoRx) >= X*Y){
+            for(int i = 0; i < Y; i++){
+                for(int j = 0; j < X; j++){
+                    xQueueReceive(videoRx, &frame[i][j], portMAX_DELAY);
+                }
+            }
+            for(int i = 0; i < Y; i++){
+                for(int j = 0; j < X; j++){
+                    xQueueSend(videoTx, &frame[i][j], portMAX_DELAY);
+                }
             }
         }
-        for(int i = 0; i < Y; i++){
-            for(int j = 0; j < X; j++){
-                xQueueSend(videoTx, &frame[i][j], portMAX_DELAY);
-            }
-        }
-        
     }
 }
 
@@ -327,21 +294,33 @@ static void control(void *pvParameters)
     int j = 0;
     
     for( ;; ){
-        for(int i = 0; i < 6; i++){
-            xEventGroupWaitBits(proxEvent, PROX_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
-            xQueuePeek(proxRx, &prox[i], portMAX_DELAY);
-            xEventGroupSync(proxEvent, T_COM_SYNC, PROX_SYNC_BITS, portMAX_DELAY);
-            commandRAW[i] = COMMAND[j][i];
+        if(uxQueueMessagesWaiting(proxRxCon) >= 6){
+            for(int i = 0; i < 6; i++){
+                xQueueReceive(proxRxCon, &prox[i], portMAX_DELAY);
+            }
         }
         for(int i = 0; i < 3; i++){
-            //TODO: Pain in the ass
-            commandWRAPPED[i] = commandRAW[i];
+            commandRAW[i] = COMMAND[j][i];
+            if((prox[2*i] == -1 || prox[2*i] > 7) && (prox[2*i + 1] == -1 || prox[2*i + 1] > 7)){
+                commandWRAPPED[i] = commandRAW[i];
+            }
+            /*else if(prox[i] > 2.5){
+                commandWRAPPED[i] = commandRAW[i] / 2;
+            }*/
+            /*else if(prox[i] < 1){
+                commandWRAPPED[i] = -64;
+            }*/
+            else{
+                commandWRAPPED[i] = 0;
+            }
         }
         for(int i = 0; i < 3; i++){
             xQueueSend(commandRx, &commandRAW[i], portMAX_DELAY);
-            xQueueSend(commandTx, &commandWRAPPED[i], portMAX_DELAY);
+            xQueueSend(commandTxGPS, &commandWRAPPED[i], portMAX_DELAY);
+            xQueueSend(commandTxMot, &commandWRAPPED[i], portMAX_DELAY);
+            xQueueSend(commandTxMon, &commandWRAPPED[i], portMAX_DELAY);
         }
-        j = (j < 12) ? j + 1 : 0;
+        j = (j < 11) ? j + 1 : 0;
     }
 }
 
@@ -354,20 +333,24 @@ static void control(void *pvParameters)
 **/
 static void motor(void *pvParameters)
 {
-    uint8_t pwm[3]; //each motor 0 to 255 (rpm? Top speed is 255?)
+    double pwm[3]; //each motor 0 to 255 (rpm? Top speed is 255?)
     int8_t control[3]; //x, y, z: -127 full reverse, 128 full forward
+    
     for( ;; ){
-        for(int i = 0; i < 3; i++){
-            xEventGroupWaitBits(comsEvent, COM_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
-            xQueuePeek(commandTx, &control[i], portMAX_DELAY);
-            xEventGroupSync(comsEvent, T_MOTO_SYNC, COM_SYNC_BITS, portMAX_DELAY);
-        }
-        
-        pwm[0] = sqrt(pow((double)control[0] / 128.0, 2.0) + pow((double)control[1] / 128.0, 2.0)); //rho
-        pwm[1] = atan((double)control[0] / (double)control[1]); //phi
-        pwm[2] = (double)control[2] / 128.0; //z
-        for(int i = 0; i < 3; i++){
-            xQueueSend(motorTx, &pwm[i], portMAX_DELAY);
+        if(uxQueueMessagesWaiting(commandTxMot) >= 3){
+            for(int i = 0; i < 3; i++){
+                xQueueReceive(commandTxMot, &control[i], portMAX_DELAY);
+            }
+            //std::cout << "motor" << std::endl;
+            pwm[0] = sqrt(pow((double)(int)control[0], 2.0) + pow((double)(int)control[1], 2.0)); //rho
+            pwm[1] = atan((double)(int)control[0] / (double)(int)control[1]); //phi
+            /*std::cout << "Raw: " << control[2] << std::endl;
+            std::cout << "Int: " << (int)control[2] << std::endl;
+            std::cout << "Double: " << (double)control[2] << std::endl;*/
+            pwm[2] = (double)control[2]; //z
+            for(int i = 0; i < 3; i++){
+                xQueueSend(motorTx, &pwm[i], portMAX_DELAY);
+            }
         }
     }
 }
@@ -387,44 +370,69 @@ static void monitor(void *pvParameters)
     char    video[Y][X];
     int8_t  commandRAW[3];
     int8_t  commandWRAPPED[3];
-    uint8_t motor[3];
+    double motor[3];
     
     for( ;; ){
-        for(int i = 0; i < 3; i++){
-            xEventGroupWaitBits(gpsEvent, GPS_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
-            xQueuePeek(gpsTx, &gps[i], portMAX_DELAY);
-            xEventGroupSync(gpsEvent, T_MON_SYNC, GPS_SYNC_BITS, portMAX_DELAY);
-            
-            xEventGroupWaitBits(comsEvent, COM_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
-            xQueuePeek(commandTx, &commandWRAPPED[i], portMAX_DELAY);
-            xEventGroupSync(comsEvent, T_MON_SYNC, COM_SYNC_BITS, portMAX_DELAY);
-        }
-        for(int i = 0; i < 3; i++){
-            xQueueReceive(motorTx, &motor[i], portMAX_DELAY);
-            xQueueReceive(commandRx, &commandRAW[i], portMAX_DELAY);
-        }
-        for(int i = 0; i < 6; i++){
-            xEventGroupWaitBits(proxEvent, PROX_START_BITS, pdFALSE, pdTRUE, portMAX_DELAY);
-            xQueuePeek(proxRx, &prox[i], portMAX_DELAY);
-            xEventGroupSync(proxEvent, T_MON_SYNC, PROX_SYNC_BITS, portMAX_DELAY);
-            
-            xQueueReceive(imuRx, &imu[i], portMAX_DELAY);
-        }
-        for(int i = 0; i < Y; i++){
-            for(int j = 0; j < X; j++){
-                xQueueReceive(videoRx, &video[i][j], portMAX_DELAY);
+        if(uxQueueMessagesWaiting(gpsTxMon) >= 3){
+            for(int i = 0; i < 3; i++){
+                xQueueReceive(gpsTxMon, &gps[i], portMAX_DELAY);
             }
         }
-        //TODO: Write that shit
-        if (system("CLS")) system("clear");//BAD
+        if(uxQueueMessagesWaiting(commandTxMon) >= 3){
+            for(int i = 0; i < 3; i++){
+                xQueueReceive(commandTxMon, &commandWRAPPED[i], portMAX_DELAY);
+            }
+        }
+        if(uxQueueMessagesWaiting(motorTx) >= 3){
+            for(int i = 0; i < 3; i++){               
+                xQueueReceive(motorTx, &motor[i], portMAX_DELAY);
+            }
+        }
+        if(uxQueueMessagesWaiting(commandRx) >= 3){
+            for(int i = 0; i < 3; i++){
+                xQueueReceive(commandRx, &commandRAW[i], portMAX_DELAY);
+            }
+        }
+        if(uxQueueMessagesWaiting(proxRxMon) >= 6){
+            for(int i = 0; i < 6; i++){
+                xQueueReceive(proxRxMon, &prox[i], portMAX_DELAY);
+            }
+        }
+        if(uxQueueMessagesWaiting(imuRx) >= 6){
+            for(int i = 0; i < 6; i++){
+                xQueueReceive(imuRx, &imu[i], portMAX_DELAY);
+            }
+        }
+        if(uxQueueMessagesWaiting(videoRx) >= X*Y){
+            for(int i = 0; i < Y; i++){
+                for(int j = 0; j < X; j++){
+                    xQueueReceive(videoRx, &video[i][j], portMAX_DELAY);
+                }
+            }
+        }
+        
+        vTaskDelay((TickType_t) 50);
+        if (system("CLS")) system("clear");
+        std::cout << "\n\n\n";
         std::cout << "Video Feed:\n";
-        for(int i = 0; i < Y; i++){
+        std::cout << "    \x1B[01;95m";
+        for(int j = 0; j < X; j++){
+                std::cout << "-";
+        }
+        std::cout << "\n";
+        for(int i = 0; i < Y; i += 2){
+            std::cout << "    |";
             for(int j = 0; j < X; j++){
                 std::cout << video[i][j];
             }
-            std::cout << "\n";
+            if(i%2 != 0) std::cout << " ";
+            std::cout << "|\n";
         }
-        std::cout << "\n\n\n";
+        std::cout << "    ";
+        for(int j = 0; j < X; j++){
+                std::cout << "-";
+        }
+        std::cout << "\x1B[0m\n\n\n";
         
         std::cout << "GPS: ";
         for(int i = 0; i < 3; i++){
@@ -447,13 +455,13 @@ static void monitor(void *pvParameters)
         std::cout << "\n\n\n";
         std::cout << "Raw Command Data: ";
         for(int i = 0; i < 3; i++){
-            std::cout << commandRAW[i];
+            std::cout << (int)commandRAW[i];
             if(i < 2) std::cout << ", ";
         }
         std::cout << "\n";
-        std::cout << "Proccessed Command Data";
+        std::cout << "Proccessed Command Data: ";
         for(int i = 0; i < 3; i++){
-            std::cout << commandWRAPPED[i];
+            std::cout << (int)commandWRAPPED[i];
             if(i < 2) std::cout << ", ";
         }
         std::cout << "\n";
@@ -462,6 +470,6 @@ static void monitor(void *pvParameters)
             std::cout << motor[i];
             if(i < 2) std::cout << ", ";
         }
-        std::cout << std::endl;
+        std::cout << std::endl;/**/
     }
 }
